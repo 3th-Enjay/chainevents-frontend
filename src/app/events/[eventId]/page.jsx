@@ -1,52 +1,36 @@
 "use client";
-import { contractAbi } from "@/abi/abi";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import ApprovalIcon from "@/icons/ApprovalIcon";
 import ValidationApprovalIcon from "@/icons/ValidationApprovalIcon";
 import React, { useEffect, useState } from "react";
 
-function page({ params }) {
+function Page({ params }) {
   const [eventData, setEventData] = useState(null);
-  const { eventId } = React.use(params);
-
-  // const eventIdBigInt = {
-  //   type: "struct",
-  //   low: BigInt(eventId || "1"),
-  //   high: BigInt(0),
-  // };
-
-  const { data, isLoading, error, isFetching } = useContractFetch(
-    contractAbi,
-    "event_details",
-    contractAddress,
-    [1]
-  );
-
-  const processEventData = (rawData) => {
-    if (!rawData) return null;
-
-    return {
-      name: rawData.name?.replace(/"/g, "") || "Unknown Event",
-      location: rawData.location || "Unknown Location",
-      organizer: rawData.organizer?.toString() || "Unknown Organizer",
-      totalRegister: Number(rawData.total_register) || 0,
-      totalAttendees: Number(rawData.total_attendees) || 0,
-      eventType: rawData.event_type?.variant === "Free" ? "Free" : "Paid",
-      isClosed: rawData.is_closed === true,
-      paidAmount: Number(rawData.paid_amount) || 0,
-    };
-  };
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+  const { eventId } = params;
 
   useEffect(() => {
-    if (data) {
-      const processed = processEventData(data);
-      console.log("Processed event data:", processed);
-      setEventData(processed);
+    if (eventId) {
+      fetch(`https://chainevents-backend.onrender.com/event/id/${eventId}`)
+        .then((response) => response.json())
+        .then((res) => {
+          if (res.success) {
+            setEventData(res.data);
+          } else {
+            setFetchError("Failed to fetch event data");
+          }
+          setLoading(false);
+        })
+        .catch((err) => {
+          setFetchError(err);
+          setLoading(false);
+        });
     }
-  }, [data]);
+  }, [eventId]);
 
-  if (isLoading || isFetching) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-white">Loading event details...</div>
@@ -54,11 +38,11 @@ function page({ params }) {
     );
   }
 
-  if (error) {
+  if (fetchError) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="p-6 bg-red-100 text-red-700">
-          Error fetching event details: {error.message}
+          Error fetching event details: {fetchError.message || fetchError}
         </div>
       </div>
     );
@@ -70,21 +54,24 @@ function page({ params }) {
       <main className="pt-[74px] pb-[197px]">
         <div className="w-[740px] mx-auto bg-[#1E1D1D] rounded border-[.3px] border-[#FFFFFF] p-4 grid grid-cols-[250px_1fr] gap-x-6">
           <div>
-            <img src="/assets/eventImage.png" className="w-full mb-4" alt="" />
+            <img
+              src={"/assets/eventImage.png"|| eventData.image_url }
+              className="w-full mb-4"
+              alt={eventData.name || "Event"}
+            />
             <h3 className="pb-2 border-b-[.4px] border-b-[#C4C4CC44] mb-2">
               Hosted By
             </h3>
             <div className="flex flex-col gap-y-2 text-xs leading-4 font-medium py-2 mb-6">
               <div className="flex gap-x-2 items-center">
-                <img src="/assets/host-avatar.svg" className="w-5 h-5" alt="" />
-                <h3>June Kankanda</h3>
-              </div>
-              <div className="flex gap-x-2 items-center">
-                <img src="/assets/host-avatar.svg" className="w-5 h-5" alt="" />
-                <h3>Daniel John</h3>
+                <img
+                  src="/assets/host-avatar.svg"
+                  className="w-5 h-5"
+                  alt="Host"
+                />
+                <h3>{eventData.event_owner || "Unknown Host"}</h3>
               </div>
             </div>
-
             <h3 className="text-[#D9D9D9] text-xs leading-4">Contact Host</h3>
             <h3 className="text-[#D9D9D9] mt-3 text-xs leading-4">
               Report Event
@@ -92,24 +79,24 @@ function page({ params }) {
           </div>
           <div>
             <h2 className="text-xl leading-6 font-semibold mb-4">
-              Workshop: Leveraging The Graph to build Your Dapp
+              {eventData.name || "Event Name"}
             </h2>
             <div className="flex items-center">
-              <img src="/" alt="" />
+              <img src="/assets/location-icon.png" alt="Location Icon" className="w-10 h-10 p-2" />
               <div>
-                <h3 className="font-medium text-sm">Colab Innovation Campus</h3>
-                <h4 className="text-[#D9D9D9] text-xs">
-                  No, 1 Technology City Boulevard/Crocodile road
-                </h4>
+                <h3 className="font-medium text-sm">
+                  {eventData.location || "Event Location"}
+                </h3>
               </div>
             </div>
             <div className="flex items-center mt-4">
-              <img src="/" alt="" />
+              <img src="/assets/date-icon.png" alt="Date Icon" className="w-10 h-10 p-2"/>
               <div>
-                <h3 className="font-medium text-sm">Friday, Sep 6</h3>
-                <h4 className="text-[#D9D9D9] text-xs">
-                  10:00 AM - 12:00 PM GMT +1
-                </h4>
+                <h3 className="font-medium text-sm">
+                  {eventData.event_start_date
+                    ? new Date(eventData.event_start_date).toLocaleDateString()
+                    : "Event Date"}
+                </h3>
               </div>
             </div>
             <div className="p-2 pb-6 rounded bg-[#C4C4C40D] mt-[34px]">
@@ -119,16 +106,19 @@ function page({ params }) {
               <div className="flex items-center mt-4 gap-2">
                 <ValidationApprovalIcon />
                 <div>
-                  <h3 className="font-medium text-sm">Approval Required</h3>
+                  <h3 className="font-medium text-sm">
+                    {eventData.require_approval ? "Approval Required" : "Open"}
+                  </h3>
                   <h4 className="text-[#D9D9D9] text-xs">
-                    Your registration is subject to approval by the host
+                    {eventData.require_approval
+                      ? "Your registration is subject to approval by the host"
+                      : "Register now"}
                   </h4>
                 </div>
               </div>
               <p className="text-xs font-semibold mt-5 mb-4">
                 Welcome to join the Event, Please register below
               </p>
-
               <button className="py-2 text-sm font-semibold rounded-full text-[#3A3A3A] bg-[#D9D9D9] w-full">
                 Request to Join
               </button>
@@ -137,24 +127,16 @@ function page({ params }) {
               About Event
             </h2>
             <p className="text-xs leading-5">
-              Get hyped for the ultimate mixer at Devcon 🎉, brought to you by
-              StarkWare & Pantera Capital & Braavos🚀 Vibe out with fellow
-              crypto people 🪙 at a party where the drinks flow 🍹, the food is
-              on point 🍣, and connections spark 🔥 We&apos;re turning the Stark
-              Space in Bangkok into the place to be 🌆 on November 13th. Come at
-              8 p.m., mingle with developers 👨‍💻👩‍💻 and other blockchain pioneers
-              🛠️, and soak in the energy ⚡ Spots are limited, so it&apos;s
-              first come, first served—make sure to get there early to secure
-              your place! ✨✨✨
+              {eventData.description ||
+                "No description provided for this event."}
             </p>
             <h2 className="pb-2 text-xs border-b-[#C4C4CC44] border-b-[.4px] font-semibold text-white mb-4 mt-4">
               Location
             </h2>
-            <h3 className="text-sm font-semibold">Colab Innovation Campus</h3>
-            <h4 className="text-xs text-[#D9D9D9]">
-              No, 1 Technology City Boulevard/Crocodile road
-            </h4>
-            <img src="/assets/map.png" className="w-full mt-3" alt="" />
+            <h3 className="text-sm font-semibold">
+              {eventData.location || "Event Location"}
+            </h3>
+            <img src="/assets/map.png" className="w-full mt-3" alt="Map" />
           </div>
         </div>
       </main>
@@ -163,4 +145,4 @@ function page({ params }) {
   );
 }
 
-export default page;
+export default Page;
