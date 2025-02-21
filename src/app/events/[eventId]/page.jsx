@@ -4,8 +4,6 @@ import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import ApprovalIcon from "@/icons/ApprovalIcon";
 import ValidationApprovalIcon from "@/icons/ValidationApprovalIcon";
-import { contractAddress } from "@/utils/address";
-import { useContractFetch } from "@/utils/helpers";
 import React, { useEffect, useState } from "react";
 
 function page({ params }) {
